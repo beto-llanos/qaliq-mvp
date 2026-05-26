@@ -73,16 +73,20 @@ App en http://localhost:3000
 
 ## Deploy en Railway
 
-1. **Crear proyecto** y vincular este repo.
-2. **Agregar plugin PostgreSQL** — Railway inyecta `DATABASE_URL` automáticamente.
-3. **Crear un Volume** y montarlo en `/data/storage`.
-4. **Setear variables**:
-   - `AUTH_SECRET` (generar con `openssl rand -base64 32`)
-   - `AUTH_URL` = URL pública del servicio
-   - `STORAGE_PATH=/data/storage`
-   - `NODE_ENV=production`
-5. Deploy. El build corre `prisma generate && next build`; el start corre
-   `prisma migrate deploy && next start`.
+Ver [DEPLOY.md](./DEPLOY.md) para la guía completa paso a paso.
+
+TL;DR:
+
+```powershell
+railway login
+railway init                          # nombre: qaliq-mvp
+railway add --database postgres
+./scripts/setup-railway.ps1           # setea AUTH_SECRET, STORAGE_PATH, NODE_ENV
+# En el dashboard: crea Volume en /data/storage y genera dominio
+railway variables --set "AUTH_URL=https://<tu-dominio>"
+railway up
+railway run npm run db:seed
+```
 
 ---
 
