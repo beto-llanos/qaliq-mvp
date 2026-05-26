@@ -1,0 +1,319 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// QALIQ MVP — Prisma schema
+//
+// Multi-tenant model: every business entity carries `organizationId`.
+// Row-Level Security will be added on top via raw SQL migration (defense in depth).
+// ─────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Tenancy ──────────────────────────────────────────────────────────────────
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  rfc       String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  users        User[]
+  documents    Document[]
+  isoClauses   IsoClauseAssignment[]
+  findings     Finding[]
+  auditEvents  AuditEvent[]
+
+  @@map("organizations")
+}
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  OPERATOR
+  EDITOR
+  VIEWER
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  name           String?
+  hashedPassword String?
+  role           Role     @default(VIEWER)
+  emailVerified  DateTime?
+  image          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  accounts Account[]
+  sessions Session[]
+
+  assignedClauses    IsoClauseAssignment[] @relation("AssignedTo")
+  backupClauses      IsoClauseAssignment[] @relation("BackupOf")
+  reportedFindings   Finding[]             @relation("ReportedBy")
+  ownedFindings      Finding[]             @relation("OwnedBy")
+  uploadedDocuments  Document[]
+  auditEvents        AuditEvent[]
+
+  @@index([organizationId])
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ── ISO Catalog (global, NOT tenant-scoped) ─────────────────────────────────
+// One canonical copy of ISO 9001 for all tenants. Curated by QALIQ team.
+
+model IsoStandard {
+  id      String  @id @default(cuid())
+  code    String  @unique // "ISO-9001"
+  name    String           // "ISO 9001:2015"
+  version String
+  active  Boolean @default(true)
+
+  clauses IsoClause[]
+
+  @@map("iso_standards")
+}
+
+model IsoClause {
+  id           String   @id @default(cuid())
+  standardId   String
+  parentId     String?
+  // Hierarchy: chapter (4) → subchapter (4.1) → point (4.1.1) → "debe"
+  number       String   // "4", "4.1", "4.1.1"
+  title        String
+  description  String?  @db.Text
+  // A leaf clause may have one or more "debes" (must-do requirements)
+  isMust       Boolean  @default(false)
+  mustText     String?  @db.Text
+  order        Int      @default(0)
+
+  standard IsoStandard  @relation(fields: [standardId], references: [id])
+  parent   IsoClause?   @relation("ClauseTree", fields: [parentId], references: [id])
+  children IsoClause[]  @relation("ClauseTree")
+
+  assignments IsoClauseAssignment[]
+
+  @@index([standardId])
+  @@index([parentId])
+  @@map("iso_clauses")
+}
+
+enum ClauseStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  NOT_APPLICABLE
+}
+
+model IsoClauseAssignment {
+  id             String       @id @default(cuid())
+  organizationId String
+  clauseId       String
+  applies        Boolean      @default(true)
+  status         ClauseStatus @default(NOT_STARTED)
+  assignedToId   String?
+  backupId       String?
+  dueDate        DateTime?
+  notes          String?      @db.Text
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  clause       IsoClause    @relation(fields: [clauseId], references: [id])
+  assignedTo   User?        @relation("AssignedTo", fields: [assignedToId], references: [id])
+  backup       User?        @relation("BackupOf", fields: [backupId], references: [id])
+
+  evidences Document[]
+
+  @@unique([organizationId, clauseId])
+  @@index([organizationId])
+  @@index([status])
+  @@map("iso_clause_assignments")
+}
+
+// ── Documents ───────────────────────────────────────────────────────────────
+
+enum DocumentStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  OBSOLETE
+}
+
+model Document {
+  id             String         @id @default(cuid())
+  organizationId String
+  parentId       String?        // links versions: v2 → parent = v1
+  title          String
+  description    String?        @db.Text
+  status         DocumentStatus @default(DRAFT)
+  version        Int            @default(1)
+  // Physical file metadata (file itself lives in Railway volume / object storage)
+  storageKey     String         // e.g. "org_xxx/doc_yyy/v1.pdf"
+  mimeType       String
+  sizeBytes      Int
+  checksum       String?
+  uploadedById   String
+  approvedAt     DateTime?
+  approvedById   String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  deletedAt      DateTime?
+
+  organization Organization          @relation(fields: [organizationId], references: [id])
+  parent       Document?             @relation("DocumentVersions", fields: [parentId], references: [id])
+  versions     Document[]            @relation("DocumentVersions")
+  uploadedBy   User                  @relation(fields: [uploadedById], references: [id])
+  // Documents can serve as evidence for ISO assignments
+  evidenceFor  IsoClauseAssignment[]
+  findings     Finding[]             @relation("FindingEvidence")
+
+  @@index([organizationId])
+  @@index([status])
+  @@map("documents")
+}
+
+// ── Findings (hallazgos) ────────────────────────────────────────────────────
+
+enum FindingSource {
+  INTERNAL_AUDIT
+  EXTERNAL_AUDIT
+  CUSTOMER_COMPLAINT
+  SELF_IDENTIFIED
+  REGULATOR
+}
+
+enum FindingSeverity {
+  MAJOR_NC
+  MINOR_NC
+  OBSERVATION
+  IMPROVEMENT_OPPORTUNITY
+}
+
+enum FindingStatus {
+  CAPTURED       // Phase 1 — captura
+  ANALYZING      // Phase 2 — plan + causa raíz
+  IN_APPROVAL    // Phase 3 — VoBos
+  IN_EXECUTION   // Phase 4
+  CLOSED
+  REOPENED
+}
+
+model Finding {
+  id             String          @id @default(cuid())
+  code           String          @unique // auto-generated: ORG-2026-001
+  organizationId String
+  source         FindingSource
+  severity       FindingSeverity
+  status         FindingStatus   @default(CAPTURED)
+  title          String
+  description    String          @db.Text
+  rootCause      String?         @db.Text
+  // Origin tracing — what triggered this finding
+  isoClauseId    String?
+  documentId    String?
+  reportedById   String
+  ownerId        String
+  dueDate        DateTime?
+  closedAt       DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  reportedBy   User         @relation("ReportedBy", fields: [reportedById], references: [id])
+  owner        User         @relation("OwnedBy", fields: [ownerId], references: [id])
+  evidence     Document[]   @relation("FindingEvidence")
+  tasks        FindingTask[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@map("findings")
+}
+
+model FindingTask {
+  id          String    @id @default(cuid())
+  findingId   String
+  description String    @db.Text
+  dueDate     DateTime?
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  finding Finding @relation(fields: [findingId], references: [id], onDelete: Cascade)
+
+  @@index([findingId])
+  @@map("finding_tasks")
+}
+
+// ── Audit log (append-only) ─────────────────────────────────────────────────
+
+model AuditEvent {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String?
+  action         String   // "document.approved", "finding.closed", etc.
+  entityType     String   // "Document", "Finding", "IsoClauseAssignment"
+  entityId       String
+  metadata       Json?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  user         User?        @relation(fields: [userId], references: [id])
+
+  @@index([organizationId, createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_events")
+}
