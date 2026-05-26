@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import NextAuth, { type NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
@@ -11,17 +11,27 @@ const credentialsSchema = z.object({
   password: z.string().min(8),
 });
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
+// Google OAuth is opt-in. If creds aren't set (typical for self-hosted MVP
+// deployments), skip the provider entirely so Auth.js doesn't choke on
+// undefined client id/secret at boot.
+const googleProvider =
+  process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET
+    ? [
+        Google({
+          clientId: process.env.AUTH_GOOGLE_ID,
+          clientSecret: process.env.AUTH_GOOGLE_SECRET,
+        }),
+      ]
+    : [];
+
+const config: NextAuthConfig = {
   adapter: PrismaAdapter(db),
   session: { strategy: "database" },
   pages: {
     signIn: "/login",
   },
   providers: [
-    Google({
-      clientId: process.env.AUTH_GOOGLE_ID,
-      clientSecret: process.env.AUTH_GOOGLE_SECRET,
-    }),
+    ...googleProvider,
     Credentials({
       credentials: {
         email: { label: "Email", type: "email" },
@@ -64,4 +74,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return session;
     },
   },
-});
+};
+
+export const { handlers, signIn, signOut, auth } = NextAuth(config);
