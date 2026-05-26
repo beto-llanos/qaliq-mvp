@@ -7,7 +7,7 @@ import { z } from "zod";
 const schema = z.object({
   email: z.string().email("Correo inválido"),
   password: z.string().min(8, "Mínimo 8 caracteres"),
-  next: z.string().optional(),
+  next: z.string().nullish(),
 });
 
 export type LoginState = { error?: string } | null;
