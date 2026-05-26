@@ -15,7 +15,8 @@ export default async function NormatividadPage() {
     where: { code: "ISO-9001" },
     include: {
       clauses: {
-        orderBy: [{ number: "asc" }],
+        // Natural sort applied in JS below — Prisma can't sort "4.10" vs "4.2"
+        // correctly because `number` is a String column.
         include: {
           assignments: {
             where: { organizationId },
@@ -40,14 +41,20 @@ export default async function NormatividadPage() {
     );
   }
 
-  // Group clauses by chapter (root level)
-  const chapters = standard.clauses.filter((c) => !c.parentId);
+  // Natural sort by clause number so "10" > "4" and "4.10" > "4.2".
+  const byNumber = (a: { number: string }, b: { number: string }) =>
+    a.number.localeCompare(b.number, undefined, { numeric: true, sensitivity: "base" });
+
+  const chapters = standard.clauses.filter((c) => !c.parentId).sort(byNumber);
   const childrenByParent = new Map<string, typeof standard.clauses>();
   for (const clause of standard.clauses) {
     if (!clause.parentId) continue;
     const arr = childrenByParent.get(clause.parentId) ?? [];
     arr.push(clause);
     childrenByParent.set(clause.parentId, arr);
+  }
+  for (const arr of childrenByParent.values()) {
+    arr.sort(byNumber);
   }
 
   return (
