@@ -26,7 +26,11 @@ const googleProvider =
 
 const config: NextAuthConfig = {
   adapter: PrismaAdapter(db),
-  session: { strategy: "database" },
+  // JWT strategy is required by Auth.js v5 to use the Credentials provider.
+  // Database sessions only work with OAuth providers. We still keep the
+  // Prisma adapter so the User / Account tables stay in sync for Google
+  // sign-ins, and we encrypt the JWT with AUTH_SECRET.
+  session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
   },
@@ -53,23 +57,42 @@ const config: NextAuthConfig = {
           id: user.id,
           email: user.email,
           name: user.name,
+          organizationId: user.organizationId,
+          role: user.role,
         };
       },
     }),
   ],
   callbacks: {
-    async session({ session, user }) {
-      if (session.user && user) {
-        // Attach org + role to the session — needed by tenant middleware
-        const dbUser = await db.user.findUnique({
-          where: { id: user.id },
-          select: { id: true, organizationId: true, role: true },
-        });
-        if (dbUser) {
-          session.user.id = dbUser.id;
-          session.user.organizationId = dbUser.organizationId;
-          session.user.role = dbUser.role;
+    async jwt({ token, user }) {
+      // Only runs on initial sign-in (when `user` is set). Persist the
+      // tenant context to the token so subsequent requests don't hit the DB.
+      if (user) {
+        token.userId = user.id;
+        // From Credentials: organizationId + role come straight from authorize.
+        // From OAuth (Google): we need to look them up since the adapter only
+        // gives us id + email + name.
+        if ("organizationId" in user && user.organizationId) {
+          token.organizationId = user.organizationId;
+          token.role = user.role;
+        } else if (user.id) {
+          const dbUser = await db.user.findUnique({
+            where: { id: user.id },
+            select: { organizationId: true, role: true },
+          });
+          if (dbUser) {
+            token.organizationId = dbUser.organizationId;
+            token.role = dbUser.role;
+          }
         }
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user && token.userId) {
+        session.user.id = token.userId as string;
+        session.user.organizationId = token.organizationId as string;
+        session.user.role = token.role as typeof session.user.role;
       }
       return session;
     },
