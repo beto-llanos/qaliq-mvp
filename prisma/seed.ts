@@ -17,6 +17,7 @@ type Sub = {
   number: string;
   title: string;
   description?: string;
+  guidance?: string;
   mustText?: string;
   children?: Sub[];
 };
@@ -25,6 +26,7 @@ type Chapter = {
   number: string;
   title: string;
   description?: string;
+  guidance?: string;
   children: Sub[];
 };
 
@@ -32,27 +34,65 @@ const ISO_9001: Chapter[] = [
   {
     number: "4",
     title: "Contexto de la organización",
+    description:
+      "El SGC arranca entendiendo dónde opera la organización: qué la afecta desde afuera, qué pasa adentro, quiénes son sus partes interesadas y hasta dónde va a llegar el sistema. Define el alcance y los procesos antes de pasar a liderazgo y planificación.",
     children: [
       {
         number: "4.1",
         title: "Comprensión de la organización y su contexto",
+        description:
+          "Identifica los factores externos (legales, tecnológicos, competencia, mercado, sociedad, economía) e internos (valores, cultura, conocimientos, desempeño) que afectan la capacidad del SGC de lograr sus resultados. Mantén el análisis bajo seguimiento y revisión.",
+        guidance:
+          "Herramientas usuales: FODA / CAME, PESTEL, Matriz de Perfil Competitivo (MPC), Cadena de Valor, Diagnóstico Interno. Integra los resultados a la misión, visión, manual de calidad y mapa de procesos. El auditor pedirá: documento de análisis del contexto, evidencia de cómo se administran los asuntos relevantes a través del SGC, y minutas de revisión periódica del contexto.",
         mustText:
-          "La organización debe determinar las cuestiones externas e internas que son pertinentes para su propósito y su dirección estratégica.",
+          "La organización debe determinar las cuestiones externas e internas que son pertinentes para su propósito y su dirección estratégica, y que afectan a su capacidad para lograr los resultados previstos de su sistema de gestión de la calidad. La organización debe realizar el seguimiento y la revisión de la información sobre estas cuestiones externas e internas.",
       },
       {
         number: "4.2",
         title: "Comprensión de las necesidades y expectativas de las partes interesadas",
+        description:
+          "Identifica las partes interesadas relevantes para el SGC (clientes, accionistas, personal, proveedores, sindicatos, reguladores, sociedad) y los requisitos pertinentes de cada una. Lleva seguimiento y revisión de esa información.",
+        guidance:
+          "El auditor pedirá un documento con: lista de partes interesadas, sus requisitos, cómo se atienden y el estatus de cumplimiento. Acompañado de reuniones documentadas (minutas, listas de asistencia) donde se revise periódicamente la información de cada parte interesada.",
+        mustText:
+          "Debido a su efecto o efecto potencial en la capacidad de la organización de proporcionar regularmente productos y servicios que satisfagan los requisitos del cliente y los legales y reglamentarios aplicables, la organización debe determinar: a) las partes interesadas que son pertinentes al sistema de gestión de la calidad; b) los requisitos pertinentes de estas partes interesadas para el sistema de gestión de la calidad. La organización debe realizar el seguimiento y la revisión de la información sobre estas partes interesadas y sus requisitos pertinentes.",
       },
       {
         number: "4.3",
         title: "Determinación del alcance del sistema de gestión de la calidad",
+        description:
+          "Define los límites y la aplicabilidad del SGC: qué productos y servicios cubre, qué sedes/áreas incluye, y qué requisitos de la norma son aplicables o no (con justificación). El alcance debe mantenerse como información documentada.",
+        guidance:
+          "Normalmente vive en el Manual del SGC. El auditor validará: que el alcance esté disponible y documentado, que las exclusiones tengan justificación válida, y que coincidan con las operaciones reales. No se puede declarar conformidad con ISO 9001 si las exclusiones afectan la conformidad del producto/servicio o la satisfacción del cliente.",
+        mustText:
+          "La organización debe determinar los límites y la aplicabilidad del sistema de gestión de la calidad para establecer su alcance. Cuando se determina este alcance, la organización debe considerar: a) las cuestiones externas e internas indicadas en el apartado 4.1; b) los requisitos de las partes interesadas pertinentes indicados en el apartado 4.2; c) los productos y servicios de la organización. La organización debe aplicar todos los requisitos de esta Norma Internacional si son aplicables en el alcance determinado de su sistema de gestión de la calidad. El alcance del sistema de gestión de la calidad de la organización debe estar disponible y mantenerse como información documentada. El alcance debe establecer los tipos de productos y servicios cubiertos, y proporcionar la justificación para cualquier requisito de esta Norma Internacional que la organización determine que no es aplicable para el alcance de su sistema de gestión de la calidad.",
       },
       {
         number: "4.4",
         title: "Sistema de gestión de la calidad y sus procesos",
+        description:
+          "Establece, implementa, mantiene y mejora continuamente un SGC basado en procesos. Identifica los procesos necesarios, sus entradas, salidas, secuencia, recursos, responsables, riesgos y métricas. Mantén y conserva la información documentada que soporta y evidencia los procesos.",
         children: [
-          { number: "4.4.1", title: "Procesos necesarios y sus interacciones" },
-          { number: "4.4.2", title: "Información documentada" },
+          {
+            number: "4.4.1",
+            title: "Procesos necesarios y sus interacciones",
+            description:
+              "Identifica los procesos del SGC y para cada uno define: entradas y salidas, secuencia e interacción, criterios y métodos de control (incluidos indicadores y mediciones), recursos, responsables y autoridades, riesgos y oportunidades, criterios de evaluación y oportunidades de mejora.",
+            guidance:
+              "Mínimo a tener listo para auditoría: mapa de procesos, procedimientos por proceso, organigrama con responsables, tablero de indicadores (KPIs) con resultados y acciones, documento de gestión de riesgos y oportunidades, y gestión de satisfacción del cliente. El auditor verificará que los procesos están realmente operando con esos controles, no solo en papel.",
+            mustText:
+              "La organización debe establecer, implementar, mantener y mejorar continuamente un sistema de gestión de la calidad, incluidos los procesos necesarios y sus interacciones, de acuerdo con los requisitos de esta Norma Internacional. La organización debe determinar los procesos necesarios para el sistema de gestión de la calidad y su aplicación a través de la organización, y debe: a) determinar las entradas requeridas y las salidas esperadas de estos procesos; b) determinar la secuencia e interacción de estos procesos; c) determinar y aplicar los criterios y los métodos (incluyendo el seguimiento, las mediciones y los indicadores del desempeño relacionados) necesarios para asegurarse de la operación eficaz y el control de estos procesos; d) determinar los recursos necesarios para estos procesos y asegurarse de su disponibilidad; e) asignar las responsabilidades y autoridades para estos procesos; f) abordar los riesgos y oportunidades determinados de acuerdo con los requisitos del apartado 6.1; g) evaluar estos procesos e implementar cualquier cambio necesario para asegurarse de que estos procesos logran los resultados previstos; h) mejorar los procesos y el sistema de gestión de la calidad.",
+          },
+          {
+            number: "4.4.2",
+            title: "Información documentada",
+            description:
+              "Mantén la información documentada que soporta la operación de los procesos (documentos vivos: manuales, procedimientos, instructivos) y conserva la que demuestra que los procesos se realizan según lo planificado (registros: bitácoras, resultados, evidencias).",
+            guidance:
+              "Mantener ≠ Conservar. Mantener = documentos para operar (procedimientos, instructivos, manuales). Conservar = registros para demostrar cumplimiento (bitácoras, formatos llenos, evidencias firmadas). El auditor revisará procedimientos, instructivos, documentos y registros que evidencien cada proceso definido para el SGC.",
+            mustText:
+              "En la medida en que sea necesario, la organización debe: a) mantener información documentada para apoyar la operación de sus procesos; b) conservar la información documentada para tener la confianza de que los procesos se realizan según lo planificado.",
+          },
         ],
       },
     ],
@@ -231,6 +271,7 @@ async function upsertClauseTree(
       number: node.number,
       title: node.title,
       description: node.description ?? null,
+      guidance: node.guidance ?? null,
       isMust: isLeaf,
       mustText: node.mustText ?? null,
       order: order * 1000 + i,
@@ -270,6 +311,7 @@ async function main() {
       number: chapter.number,
       title: chapter.title,
       description: chapter.description ?? null,
+      guidance: chapter.guidance ?? null,
       isMust: false,
       order: i,
     };

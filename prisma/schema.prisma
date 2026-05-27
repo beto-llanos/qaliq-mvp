@@ -133,6 +133,8 @@ model IsoClause {
   number       String   // "4", "4.1", "4.1.1"
   title        String
   description  String?  @db.Text
+  // Plain-language explanation + practical examples (sourced from "para dummies" material)
+  guidance     String?  @db.Text
   // A leaf clause may have one or more "debes" (must-do requirements)
   isMust       Boolean  @default(false)
   mustText     String?  @db.Text
