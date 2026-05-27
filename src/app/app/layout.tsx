@@ -19,7 +19,7 @@ export default async function AppLayout({
 
   return (
     <div className="flex min-h-screen">
-      <aside className="hidden w-64 border-r border-slate-200 bg-slate-50 px-4 py-6 md:block">
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-slate-200 bg-slate-50 px-4 py-6 md:flex">
         <div className="px-2 pb-6">
           <p className="text-xs font-semibold uppercase tracking-wider text-qaliq-teal">
             QALIQ
@@ -34,7 +34,7 @@ export default async function AppLayout({
           <NavLink href="/app/hallazgos" label="Hallazgos" muted />
         </nav>
 
-        <div className="absolute bottom-6 left-4 w-56 border-t border-slate-200 pt-4">
+        <div className="mt-auto border-t border-slate-200 pt-4">
           <p className="px-2 text-xs text-slate-500">{session.user.email}</p>
           <p className="px-2 text-xs text-slate-400">{session.user.role}</p>
           <form
@@ -53,7 +53,7 @@ export default async function AppLayout({
         </div>
       </aside>
 
-      <main className="flex-1 px-6 py-8 md:px-10">{children}</main>
+      <main className="min-w-0 flex-1 px-6 py-8 md:px-10">{children}</main>
     </div>
   );
 }
